@@ -1,8 +1,12 @@
+import java.io.IOException;
+import java.net.*;
+import java.util.ArrayList;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,10 +22,20 @@ public class Main {
         final int windowY = 1000;
 
         Semaphore pauseLock = new Semaphore(guests,true);
+        AtomicLong[] messageNumber = new AtomicLong[1];
+        messageNumber[0] = new AtomicLong(0);
+
+        // networking socket
+        DatagramSocket socket = null;
+        try {
+            socket = new DatagramSocket(1234);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // initialize forks
         Fork[] forks = new Fork[guests];
-        for(int i=0;i<guests;i++){
+        for(byte i=0;i<guests;i++){
             //initialize fork at index [i] to a fork id of [i]
             Fork currentFork = new Fork(i);
             forks[i] = currentFork;
@@ -30,11 +44,19 @@ public class Main {
 
         // initialize the array of philosophers
         Philosopher[] philosophers = new Philosopher[guests];
-        for(int i=0;i<guests;i++){
+        for(byte i=0;i<guests;i++){
             //initialize philosopher at index [i] to id of [i]
-            Philosopher currentPhilosopher = new Philosopher(i,forks,pauseLock);
+            Philosopher currentPhilosopher = new Philosopher(i,forks,pauseLock, messageNumber ,socket);
             philosophers[i] = currentPhilosopher;
             System.out.println("philosopher " + i + " created");
+        }
+
+        // create and start the load nodes
+        final int numberOfRecieverNodes = 5;
+        ReceiverNode[] recieverNodes = new ReceiverNode[numberOfRecieverNodes];
+        for(int i=0;i<numberOfRecieverNodes;i++){
+            recieverNodes[i] = new ReceiverNode(i,socket);
+            recieverNodes[i].start();
         }
 
         // create and start the gui thread
@@ -47,7 +69,7 @@ public class Main {
             e.printStackTrace();
         }
 
-        //pause
+        // pause
         pauseLock.acquireUninterruptibly(guests);
 
         // start the philosophers
@@ -68,6 +90,5 @@ public class Main {
         System.out.println("Dinner can begin!" );
 
         pauseLock.release(guests);
-
     }
 }

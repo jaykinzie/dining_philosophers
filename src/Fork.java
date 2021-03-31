@@ -3,13 +3,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Fork {
     // identifier
-    public int Id;
+    public byte Id;
     // associated button in the gui
     public JButton button;
     // lock to represent if the fork is being held by a philosopher
     public ReentrantLock lock;
 
-    public Fork(int inId) {
+    public Fork(byte inId) {
         Id = inId;
         lock = new ReentrantLock();
     }
@@ -20,7 +20,6 @@ public class Fork {
     }
 
     public boolean tryLock(Philosopher inPhilosopher) {
-
         // String currentText = button.getText();
 
         // try to get the lock
